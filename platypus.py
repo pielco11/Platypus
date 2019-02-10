@@ -53,6 +53,11 @@ def getIncidentsPoints(url):
         #print('---- Geo: {},{}'.format(incident['lat'], incident['lng']))
     return _incidentsList
 
+def getAddressPoint(url):
+    _jPoint = getGeoPoint(url)
+    _jAddress = _jPoint['results'][0]['locations'][0]['latLng']
+    return _jAddress
+
 def initCSV(filename):
     fieldnames = ['Title', 'Description', 'Lat', 'Long']
     writer = csv.DictWriter(filename, fieldnames=fieldnames)
@@ -67,10 +72,19 @@ def writeRow(writer, incident):
         'Long': incident['long']
     })
 
+def readRows(file):
+    _entries = []
+    with open(file) as inputFile:
+        reader = csv.reader(inputFile)
+        for row in reader:
+            row[0] = row[0].replace(' ', '+')
+            _entries.append(row[0]+'%2C'+row[1])
+    return _entries
 
 init(autoreset=True)
-
+baseUrl = "https://www.mapquestapi.com"
 key = ""
+incidentsUrl = baseUrl + "/traffic/v2/incidents?&outFormat=json&key={}".format(key)
 http = urllib3.PoolManager( 1,
         cert_reqs='CERT_REQUIRED',
         ca_certs=certifi.where(),
@@ -85,22 +99,21 @@ print(Fore.CYAN + """
 ╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚═╝      ╚═════╝ ╚══════╝
 """)
 
-city = input(Fore.YELLOW + "[<] City: " + Style.RESET_ALL)
-city = city.replace(' ', '+').replace(',', '%2C')
-filename = input(Fore.YELLOW + "[<] CSV filename: " + Style.RESET_ALL)
-baseUrl = "https://www.mapquestapi.com"
-incidentsUrl = baseUrl + "/traffic/v2/incidents?&outFormat=json&key={}".format(key)
-addressUrl = baseUrl + "/geocoding/v1/address?key={}&location={}".format(key, city)
+readCSV = input(Fore.YELLOW + "[<] read from: " + Style.RESET_ALL)
+writeCSV = input(Fore.YELLOW + "[<] write to: " + Style.RESET_ALL)
 
-_jAddress = getGeoPoint(addressUrl)
-addressPoint = _jAddress['results'][0]['locations'][0]['latLng']
-firstPoint = dirtyFirstPoint(addressPoint['lat'], addressPoint['lng'])
-secondPoint = dirtySecondPoint(addressPoint['lat'], addressPoint['lng'])
+cities = readRows(readCSV)
+with open(writeCSV, 'w') as outputFile:
+    writer = initCSV(outputFile)
+    for city in cities:
+        addressUrl = baseUrl + "/geocoding/v1/address?key={}&location={}".format(key, city)
+        print(addressUrl)
+        addressPoint = getAddressPoint(addressUrl)
+        firstPoint = dirtyFirstPoint(addressPoint['lat'], addressPoint['lng'])
+        secondPoint = dirtySecondPoint(addressPoint['lat'], addressPoint['lng'])
 
-incidentsUrl = incidentsUrl + "&boundingBox={}&filters=incidents".format(firstPoint+','+secondPoint)
-incidentsList = getIncidentsPoints(incidentsUrl)
+        incidentsUrl = incidentsUrl + "&boundingBox={}&filters=incidents".format(firstPoint+','+secondPoint)
+        incidentsList = getIncidentsPoints(incidentsUrl)
 
-with open(filename, 'w') as csvFile:
-    writer = initCSV(csvFile)
-    for incident in incidentsList:
-        writeRow(writer, incident)
+        for incident in incidentsList:
+            writeRow(writer, incident)
