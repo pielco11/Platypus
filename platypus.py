@@ -107,7 +107,6 @@ with open(writeCSV, 'w') as outputFile:
     writer = initCSV(outputFile)
     for city in cities:
         addressUrl = baseUrl + "/geocoding/v1/address?key={}&location={}".format(key, city)
-        print(addressUrl)
         addressPoint = getAddressPoint(addressUrl)
         firstPoint = dirtyFirstPoint(addressPoint['lat'], addressPoint['lng'])
         secondPoint = dirtySecondPoint(addressPoint['lat'], addressPoint['lng'])
