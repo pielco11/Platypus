@@ -29,8 +29,7 @@ def dirtySecondPoint(lat, lon):
 def getGeoPoint(url):
     response = http.request('GET', url)
     if response.status != 200:
-        print(Fore.RED + '[x] Error')
-        print(response.status)
+        print(Fore.RED + '[x] Error: {}'.format(response.status))
         sys.exit(1)
     jPoint = json.loads(response.data.decode('utf-8'))
     return jPoint
@@ -47,10 +46,6 @@ def getIncidentsPoints(url):
             'lat': incident['lat'],
             'long': incident['lng']
         })
-        #print('<-->')
-        #print('---- Title: {}'.format(incident['shortDesc']))
-        #print('---- Description: {}'.format(incident['fullDesc']))
-        #print('---- Geo: {},{}'.format(incident['lat'], incident['lng']))
     return _incidentsList
 
 def getAddressPoint(url):
@@ -83,7 +78,7 @@ def readRows(file):
 
 init(autoreset=True)
 baseUrl = "https://www.mapquestapi.com"
-key = ""
+key = open('key.txt', 'r').read().strip('\n')
 incidentsUrl = baseUrl + "/traffic/v2/incidents?&outFormat=json&key={}".format(key)
 http = urllib3.PoolManager( 1,
         cert_reqs='CERT_REQUIRED',
@@ -99,20 +94,20 @@ print(Fore.CYAN + """
 ╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚═╝      ╚═════╝ ╚══════╝
 """)
 
-readCSV = input(Fore.YELLOW + "[<] read from: " + Style.RESET_ALL)
+city = input(Fore.YELLOW + "[<] City: " + Style.RESET_ALL)
+city = city.replace(' ', '+').replace(',', '%2C')
 writeCSV = input(Fore.YELLOW + "[<] write to: " + Style.RESET_ALL)
 
-cities = readRows(readCSV)
 with open(writeCSV, 'w') as outputFile:
     writer = initCSV(outputFile)
-    for city in cities:
-        addressUrl = baseUrl + "/geocoding/v1/address?key={}&location={}".format(key, city)
-        addressPoint = getAddressPoint(addressUrl)
-        firstPoint = dirtyFirstPoint(addressPoint['lat'], addressPoint['lng'])
-        secondPoint = dirtySecondPoint(addressPoint['lat'], addressPoint['lng'])
 
-        incidentsUrl = incidentsUrl + "&boundingBox={}&filters=incidents".format(firstPoint+','+secondPoint)
-        incidentsList = getIncidentsPoints(incidentsUrl)
+    addressUrl = baseUrl + "/geocoding/v1/address?key={}&location={}".format(key, city)
+    addressPoint = getAddressPoint(addressUrl)
 
-        for incident in incidentsList:
-            writeRow(writer, incident)
+    firstPoint = dirtyFirstPoint(addressPoint['lat'], addressPoint['lng'])
+    secondPoint = dirtySecondPoint(addressPoint['lat'], addressPoint['lng'])
+
+    incidentsUrl = incidentsUrl + "&boundingBox={}&filters=incidents".format(firstPoint+','+secondPoint)
+    incidentsList = getIncidentsPoints(incidentsUrl)
+    for incident in incidentsList:
+        writeRow(writer, incident)
