@@ -17,8 +17,8 @@ import certifi
 from colorama import init, Fore, Style
 
 def dirtyFirstPoint(lat, lon):
-    _lat = float(lat) - 0.1
-    _lon = float(lon) - 0.1
+    _lat = float(lat) - 1
+    _lon = float(lon) - 1
     return str(_lat)+','+str(_lon)
 
 def dirtySecondPoint(lat, lon):
@@ -34,19 +34,19 @@ def getGeoPoint(url):
     jPoint = json.loads(response.data.decode('utf-8'))
     return jPoint
 
-def getIncidentsPoints(url):
+def getConstructionPoints(url):
     jPoints = getGeoPoint(url)
-    incidents = jPoints['incidents']
-    #print('[# incidents] {}'.format(len(incidents)))
-    _incidentsList = []
-    for incident in incidents:
-        _incidentsList.append({
-            'title': incident['shortDesc'],
-            'desc': incident['fullDesc'],
-            'lat': incident['lat'],
-            'long': incident['lng']
+    construction = jPoints['incidents']
+    #print('[# construction] {}'.format(len(construction)))
+    _constructionList = []
+    for constructionSite in construction:
+        _constructionList.append({
+            'title': constructionSite['shortDesc'],
+            'desc': constructionSite['fullDesc'],
+            'lat': constructionSite['lat'],
+            'long': constructionSite['lng']
         })
-    return _incidentsList
+    return _constructionList
 
 def getAddressPoint(url):
     _jPoint = getGeoPoint(url)
@@ -59,12 +59,12 @@ def initCSV(filename):
     writer.writeheader()
     return writer
 
-def writeRow(writer, incident):
+def writeRow(writer, constructionSite):
     writer.writerow({
-        'Title': incident['title'],
-        'Description': incident['desc'],
-        'Lat': incident['lat'],
-        'Long': incident['long']
+        'Title': constructionSite['title'],
+        'Description': constructionSite['desc'],
+        'Lat': constructionSite['lat'],
+        'Long': constructionSite['long']
     })
 
 def readRows(file):
@@ -79,7 +79,7 @@ def readRows(file):
 init(autoreset=True)
 baseUrl = "https://www.mapquestapi.com"
 key = open('key.txt', 'r').read().strip('\n')
-incidentsUrl = baseUrl + "/traffic/v2/incidents?&outFormat=json&key={}".format(key)
+constructionUrl = baseUrl + "/traffic/v2/incidents?&outFormat=json&key={}".format(key)
 http = urllib3.PoolManager( 1,
         cert_reqs='CERT_REQUIRED',
         ca_certs=certifi.where(),
@@ -91,8 +91,8 @@ print(Fore.CYAN + """
 ██████╔╝██║     ███████║   ██║    ╚████╔╝ ██████╔╝██║   ██║███████╗
 ██╔═══╝ ██║     ██╔══██║   ██║     ╚██╔╝  ██╔═══╝ ██║   ██║╚════██║
 ██║     ███████╗██║  ██║   ██║      ██║   ██║     ╚██████╔╝███████║
-╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚═╝      ╚═════╝ ╚══════╝
-""")
+╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝      ╚═╝   ╚═╝      ╚═════╝ ╚══════╝  
+                                                                             """)
 
 city = input(Fore.YELLOW + "[<] City: " + Style.RESET_ALL)
 city = city.replace(' ', '+').replace(',', '%2C')
@@ -107,7 +107,7 @@ with open(writeCSV, 'w') as outputFile:
     firstPoint = dirtyFirstPoint(addressPoint['lat'], addressPoint['lng'])
     secondPoint = dirtySecondPoint(addressPoint['lat'], addressPoint['lng'])
 
-    incidentsUrl = incidentsUrl + "&boundingBox={}&filters=incidents".format(firstPoint+','+secondPoint)
-    incidentsList = getIncidentsPoints(incidentsUrl)
-    for incident in incidentsList:
-        writeRow(writer, incident)
+    constructionUrl = constructionUrl + "&boundingBox={}&filters=construction".format(firstPoint+','+secondPoint)
+    constructionList = getConstructionPoints(constructionUrl)
+    for constructionSite in constructionList:
+        writeRow(writer, constructionSite)
